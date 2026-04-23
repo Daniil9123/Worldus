@@ -1,0 +1,150 @@
+body {
+    margin: 0;
+    font-family: Arial;
+    background: url('../images/bc.jpg') no-repeat center center fixed;
+    background-size: cover;
+    color: white;
+}
+
+/* Navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px 30px;
+    background: #1A2B8F;
+}
+
+img {
+    max-width: 100%;
+}
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo img {
+    height: 30px;
+    width: 35px;
+}
+
+.logo span {
+    font-size: 18px;
+}
+
+.btn {
+    padding: 8px 15px;
+    border: 1px solid white;
+    border-radius: 8px;
+    text-decoration: none;
+    color: white;
+    margin-left: 10px;
+}
+
+.btn:hover {
+    background: white;
+    color: black;
+}
+
+/* Главный блок */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+}
+
+.card {
+    width: 700px;
+    padding: 30px;
+    border-radius: 20px;
+    background: rgba(0,0,50,0.6);
+    backdrop-filter: blur(10px);
+    text-align: center;
+}
+
+/* Кнопки */
+.buttons {
+    margin-top: 20px;
+}
+
+.green {
+    background: #2ECC71;
+}
+
+.blue {
+    background: #3A8DFF;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 10px;
+}
+
+input {
+    width: 80%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    margin-top: 10px;
+}
+.grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 40px;
+}
+
+.category {
+    width: 250px;
+    padding: 20px;
+    border-radius: 20px;
+    text-align: center;
+    background: rgba(0,0,50,0.6);
+    backdrop-filter: blur(10px);
+    text-decoration: none;
+    color: white;
+    transition: 0.3s;
+}
+
+.category img {
+    width: 100px;
+    margin-bottom: 10px;
+}
+
+.category:hover {
+    transform: scale(1.05);
+}
+.levels {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 30px;
+}
+
+.level {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #3A8DFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    transition: 0.3s;
+}
+
+.level:hover {
+    transform: scale(1.1);
+}
+
+.locked {
+    background: gray;
+    pointer-events: none;
+}
