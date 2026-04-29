@@ -1,9 +1,9 @@
 <?php
 include "config/db.php";
 include "includes/header.php";
-
 $result = $conn->query("SELECT * FROM categories");
 ?>
+<a href="levels.php?category=<?= $category['id'] ?>">
 
 <div class="container">
     <div class="grid">
