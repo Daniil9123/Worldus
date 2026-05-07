@@ -3,36 +3,88 @@
 include "config/db.php";
 include "includes/header.php";
 
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$user_id = (int)$_SESSION['user_id'];
+
 /*
 LEVEL
 */
 
+/*
+LEVEL AND CATEGORY
+*/
+
 $level_id = isset($_GET['level'])
-? (int)$_GET['level']
-: 1;
+    ? (int)$_GET['level']
+    : 0;
+
+$category_id = isset($_GET['category'])
+    ? (int)$_GET['category']
+    : 1;
+
+/*
+ПРОВЕРКА:
+уровень принадлежит категории
+*/
+
+$level_check = $conn->query("
+    SELECT *
+    FROM levels
+    WHERE id = $level_id
+    AND category_id = $category_id
+    LIMIT 1
+");
+
+if ($level_check->num_rows == 0) {
+
+    echo "
+    <div class='question-page'>
+
+        <div class='finish-box'>
+
+            <h1>Уровень не найден</h1>
+
+            <a href='categories.php'>
+                <button class='next-btn'>
+                    Назад
+                </button>
+            </a>
+
+        </div>
+
+    </div>
+    ";
+
+    include "includes/footer.php";
+    exit();
+}
 
 /*
 QUESTION NUMBER
 */
 
 $q = isset($_GET['q'])
-? (int)$_GET['q']
-: 0;
+    ? (int)$_GET['q']
+    : 0;
 
 /*
 ВСЕ ВОПРОСЫ УРОВНЯ
 */
 
 $questions = $conn->query("
-SELECT *
-FROM questions
-WHERE level_id = $level_id
-ORDER BY id ASC
+    SELECT *
+    FROM questions
+    WHERE level_id = $level_id
+    ORDER BY id ASC
 ");
 
 $questions_array = [];
 
-while($row = $questions->fetch_assoc()) {
+while ($row = $questions->fetch_assoc()) {
     $questions_array[] = $row;
 }
 
@@ -46,45 +98,47 @@ $total_questions = count($questions_array);
 ЕСЛИ ВОПРОСОВ НЕТ
 */
 
-if($total_questions == 0){
-
-echo "<h1>Вопросов нет</h1>";
-exit;
+if ($total_questions == 0) {
+    echo "<div class='question-page'><div class='finish-box'><h1>Вопросов нет</h1></div></div>";
+    include "includes/footer.php";
+    exit();
 }
 
 /*
 ЕСЛИ УРОВЕНЬ ЗАКОНЧЕН
 */
 
-if($q >= $total_questions){
+if ($q >= $total_questions) {
 
-$conn->query("
-INSERT INTO progress(level_id, completed)
-VALUES($level_id, 1)
-");
+    $conn->query("
+        INSERT INTO progress (user_id, level_id, completed, score)
+        VALUES ($user_id, $level_id, 1, 0)
+        ON DUPLICATE KEY UPDATE
+        completed = 1
+    ");
 
 ?>
 
 <div class="question-page">
 
-<div class="finish-box">
+    <div class="finish-box">
 
-<h1>Уровень пройден!</h1>
+        <h1>Уровень пройден!</h1>
 
-<a href="levels.php?category=1">
-<button class="next-btn">
-Назад к уровням
-</button>
-</a>
+        <a href="levels.php?category=<?= $category_id ?>">
+            <button class="next-btn">
+                Назад к уровням
+            </button>
+        </a>
 
-</div>
+    </div>
 
 </div>
 
 <?php
 
-include "includes/footer.php";
-exit;
+    include "includes/footer.php";
+    exit();
 
 }
 
@@ -99,131 +153,118 @@ $current_question = $questions_array[$q];
 */
 
 $answers = $conn->query("
-SELECT *
-FROM answers
-WHERE question_id = {$current_question['id']}
+    SELECT *
+    FROM answers
+    WHERE question_id = {$current_question['id']}
 ");
 
 ?>
 
 <div class="question-page">
 
-<div class="question-box">
+    <div class="question-box">
 
-<!-- ПРОГРЕСС -->
+        <!-- ПРОГРЕСС -->
 
-<div class="progress-text">
+        <div class="progress-text">
+            Вопрос <?= $q + 1 ?> / <?= $total_questions ?>
+        </div>
 
-Вопрос <?= $q + 1 ?> / <?= $total_questions ?>
+        <div class="progress-bar">
+            <div class="progress-fill"
+                 style="width: <?= (($q + 1) / $total_questions) * 100 ?>%">
+            </div>
+        </div>
 
-</div>
+        <!-- QUESTION -->
 
-<div class="progress-bar">
+        <h1 class="question-title">
+            <?= $current_question['question_text'] ?>
+        </h1>
 
-<div class="progress-fill"
-style="width: <?= (($q + 1) / $total_questions) * 100 ?>%">
-</div>
+        <!-- IMAGE -->
 
-</div>
+        <?php if (!empty($current_question['image'])) { ?>
 
-<!-- QUESTION -->
+            <img
+                src="<?= $current_question['image'] ?>"
+                class="question-image"
+                alt="question image"
+            >
 
-<h1 class="question-title">
+        <?php } ?>
 
-<?= $current_question['question_text'] ?>
+        <!-- ANSWERS -->
 
-</h1>
+        <div class="answers">
 
-<!-- IMAGE -->
+            <?php while ($answer = $answers->fetch_assoc()) { ?>
 
-<?php if(!empty($current_question['image'])) { ?>
+                <button
+                    class="answer-btn"
+                    data-correct="<?= $answer['is_correct'] ?>"
+                >
 
-<img
-src="images/questions/<?= $current_question['image'] ?>"
-class="question-image"
->
+                    <?php if (!empty($answer['image'])) { ?>
 
-<?php } ?>
+                        <img src="<?= $answer['image'] ?>" alt="answer image">
 
-<!-- ANSWERS -->
+                    <?php } else { ?>
 
-<div class="answers">
+                        <?= $answer['answer_text'] ?>
 
-<?php while($answer = $answers->fetch_assoc()) { ?>
+                    <?php } ?>
 
-<button
-class="answer-btn"
-data-correct="<?= $answer['is_correct'] ?>"
->
+                </button>
 
-<?= $answer['answer_text'] ?>
+            <?php } ?>
 
-</button>
+        </div>
 
-<?php } ?>
+        <!-- NEXT -->
 
-</div>
+        <a href="question.php?level=<?= $level_id ?>&category=<?= $category_id ?>&q=<?= $q + 1 ?>">
 
-<!-- NEXT -->
+            <button
+                class="next-btn"
+                id="nextButton"
+                style="display:none;"
+            >
+                Далее
+            </button>
 
-<a href="question.php?level=<?= $level_id ?>&q=<?= $q + 1 ?>">
+        </a>
 
-<button
-class="next-btn"
-id="nextButton"
-style="display:none;"
->
-
-Далее
-
-</button>
-
-</a>
-
-</div>
+    </div>
 
 </div>
 
 <script>
-
-const buttons =
-document.querySelectorAll(".answer-btn");
-
-const nextButton =
-document.getElementById("nextButton");
+const buttons = document.querySelectorAll(".answer-btn");
+const nextButton = document.getElementById("nextButton");
 
 buttons.forEach(button => {
+    button.addEventListener("click", () => {
 
-button.addEventListener("click", () => {
+        buttons.forEach(btn => {
+            btn.disabled = true;
+        });
 
-buttons.forEach(btn => {
-btn.disabled = true;
+        if (button.dataset.correct == "1") {
+            button.classList.add("correct");
+        } else {
+            button.classList.add("wrong");
+
+            buttons.forEach(btn => {
+                if (btn.dataset.correct == "1") {
+                    btn.classList.add("correct");
+                }
+            });
+        }
+
+        nextButton.style.display = "inline-block";
+    });
 });
-
-if(button.dataset.correct == "1"){
-
-button.classList.add("correct");
-
-}else{
-
-button.classList.add("wrong");
-
-buttons.forEach(btn => {
-
-if(btn.dataset.correct == "1"){
-btn.classList.add("correct");
-}
-
-});
-
-}
-
-nextButton.style.display = "block";
-
-});
-
-});
-
 </script>
 
 <?php include "includes/footer.php"; ?>

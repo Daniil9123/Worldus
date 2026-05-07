@@ -3,7 +3,7 @@ include "config/db.php";
 include "includes/header.php";
 $result = $conn->query("SELECT * FROM categories");
 ?>
-<a href="levels.php?category=<?= $category['id'] ?>">
+
 
 <div class="container">
     <div class="grid">
@@ -11,7 +11,7 @@ $result = $conn->query("SELECT * FROM categories");
 <?php
 while ($row = $result->fetch_assoc()) {
     echo "
-    <a href='levels.php?category_id={$row['id']}' class='card category'>
+    <a href='levels.php?category={$row['id']}' class='card category'>
         <img src='{$row['image']}' alt=''>
         <h3>{$row['name']}</h3>
         <p>{$row['description']}</p>
