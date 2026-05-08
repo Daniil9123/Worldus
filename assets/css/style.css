@@ -228,28 +228,66 @@ form input::placeholder {
     font-size: 16px;
 }
 
+
 /* ===== LEVELS PAGE ===== */
 
 .levels-page {
     width: 100%;
+    min-height: calc(100vh - 70px);
+
     display: flex;
     flex-direction: column;
     align-items: center;
 
-    padding: 50px 20px;
+    padding: 50px 20px 30px;
 }
 
 .levels-title {
     color: white;
     font-size: 42px;
-
-    margin-bottom: 60px;
-    text-shadow: 0 0 20px rgba(255,255,255,0.5);
+    margin-bottom: 18px;
+    text-shadow: 0 0 20px rgba(255,255,255,0.6);
 }
+
+/* ===== LEVELS PROGRESS ===== */
+
+.levels-progress {
+    width: 370px;
+    max-width: 90%;
+    margin-bottom: 55px;
+    text-align: center;
+}
+
+.levels-progress p {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.levels-progress-bar {
+    width: 100%;
+    height: 22px;
+
+    border: 2px solid white;
+    border-radius: 10px;
+
+    overflow: hidden;
+    background: rgba(0, 0, 60, 0.65);
+
+    box-shadow: 0 0 14px rgba(255,255,255,0.25);
+}
+
+.levels-progress-fill {
+    height: 100%;
+    background: #18c964;
+    transition: 0.3s;
+}
+
+/* ===== LEVELS MAP ===== */
 
 .levels-map {
     width: 100%;
-    max-width: 950px;
+    max-width: 1000px;
 
     display: flex;
     justify-content: center;
@@ -269,6 +307,8 @@ form input::placeholder {
     text-decoration: none;
 }
 
+/* ===== LEVEL CIRCLE ===== */
+
 .level-circle {
     width: 110px;
     height: 110px;
@@ -286,13 +326,13 @@ form input::placeholder {
     color: white;
 
     transition: 0.3s;
-    box-shadow: 0 0 25px rgba(0, 120, 255, 0.6);
+    box-shadow: 0 0 25px rgba(0, 120, 255, 0.7);
 }
 
 .level-item a .level-circle:hover {
     transform: scale(1.08);
     cursor: pointer;
-    box-shadow: 0 0 40px rgba(0, 150, 255, 0.9);
+    box-shadow: 0 0 40px rgba(0, 150, 255, 1);
 }
 
 .locked {
@@ -302,7 +342,85 @@ form input::placeholder {
 
 .completed {
     background: #1fc95d;
-    box-shadow: 0 0 30px rgba(0,255,120,0.7);
+    box-shadow: 0 0 35px rgba(0,255,120,0.85);
+}
+
+/* ===== LEVEL PAGINATION ===== */
+
+.level-pagination {
+    margin-top: 55px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    gap: 22px;
+}
+
+.arrow-btn {
+    width: 64px;
+    height: 64px;
+
+    border-radius: 50%;
+    border: 3px solid white;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: rgba(0, 0, 120, 0.85);
+    color: white;
+
+    font-size: 38px;
+    font-weight: bold;
+    line-height: 1;
+
+    text-decoration: none;
+
+    box-shadow: 0 0 20px rgba(0, 80, 255, 0.6);
+    transition: 0.3s;
+}
+
+.arrow-btn:hover {
+    transform: scale(1.1);
+    background: #1d35ff;
+}
+
+.arrow-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ===== PAGE SELECT ===== */
+
+.page-select-form {
+    margin: 0;
+}
+
+.page-select {
+    min-width: 90px;
+
+    padding: 9px 14px;
+
+    border-radius: 8px;
+    border: 2px solid white;
+
+    background: rgba(0, 0, 80, 0.9);
+    color: white;
+
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+
+    cursor: pointer;
+
+    box-shadow: 0 0 15px rgba(0, 80, 255, 0.45);
+}
+
+.page-select option {
+    background: #08005f;
+    color: white;
 }
 
 /* ===== QUESTION PAGE ===== */
