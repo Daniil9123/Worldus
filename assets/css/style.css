@@ -227,6 +227,35 @@ form input::placeholder {
 .category p {
     font-size: 16px;
 }
+/* ===== CATEGORIES TITLE ===== */
+
+.categories-title {
+    text-align: center;
+    font-size: 42px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 20px rgba(255,255,255,0.6);
+}
+
+.categories-description {
+    max-width: 820px;
+    margin: 0 auto 35px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+/* ===== CATEGORY PAGINATION ===== */
+
+.category-pagination {
+    margin-top: 45px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    gap: 22px;
+}
 
 
 /* ===== LEVELS PAGE ===== */
