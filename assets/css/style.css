@@ -594,6 +594,41 @@ form input::placeholder {
     object-fit: cover;
 }
 
+/* ===== INPUT ANSWERS ===== */
+.input-answer-box {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.text-answer {
+    width: 80%;
+    max-width: 500px;
+    padding: 15px;
+
+    border-radius: 12px;
+    border: 2px solid white;
+
+    background: rgba(0,0,60,0.75);
+    color: white;
+
+    font-size: 20px;
+    text-align: center;
+}
+
+.input-result {
+    margin-top: 20px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.correct-text {
+    color: #18c964;
+}
+
+.wrong-text {
+    color: #ff4b4b;
+}
+
 /* ===== PROGRESS ===== */
 
 .progress-text {

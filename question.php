@@ -196,7 +196,35 @@ $answers = $conn->query("
 
         <!-- ANSWERS -->
 
-        <?php if ($current_question['type'] == 'image') { ?>
+        <?php if ($current_question['type'] == 'input') { ?>
+
+            <div class="input-answer-box">
+
+                <?php
+                $correct_answer = $answers->fetch_assoc();
+                ?>
+
+                <input
+                    type="text"
+                    id="textAnswer"
+                    class="text-answer"
+                    placeholder="Введите ответ"
+                    data-correct="<?= htmlspecialchars(mb_strtolower(trim($correct_answer['answer_text']))) ?>"
+                >
+
+                <button
+                    type="button"
+                    class="next-btn"
+                    id="checkInputBtn"
+                >
+                    Проверить
+                </button>
+
+                <p id="inputResult" class="input-result"></p>
+
+            </div>
+
+        <?php } elseif ($current_question['type'] == 'image') { ?>
 
             <div class="image-answers">
 
@@ -282,6 +310,29 @@ buttons.forEach(button => {
         nextButton.style.display = "inline-block";
     });
 });
+
+const checkInputBtn = document.getElementById("checkInputBtn");
+const textAnswer = document.getElementById("textAnswer");
+const inputResult = document.getElementById("inputResult");
+
+if (checkInputBtn) {
+    checkInputBtn.addEventListener("click", () => {
+        const userAnswer = textAnswer.value.trim().toLowerCase();
+        const correctAnswer = textAnswer.dataset.correct.trim().toLowerCase();
+
+        if (userAnswer === correctAnswer) {
+            inputResult.textContent = "Правильно!";
+            inputResult.className = "input-result correct-text";
+        } else {
+            inputResult.textContent = "Неправильно! Правильный ответ: " + correctAnswer;
+            inputResult.className = "input-result wrong-text";
+        }
+
+        textAnswer.disabled = true;
+        checkInputBtn.style.display = "none";
+        nextButton.style.display = "inline-block";
+    });
+}
 </script>
 
 <?php include "includes/footer.php"; ?>
