@@ -196,30 +196,47 @@ $answers = $conn->query("
 
         <!-- ANSWERS -->
 
-        <div class="answers">
+        <?php if ($current_question['type'] == 'image') { ?>
 
-            <?php while ($answer = $answers->fetch_assoc()) { ?>
+            <div class="image-answers">
 
-                <button
-                    class="answer-btn"
-                    data-correct="<?= $answer['is_correct'] ?>"
-                >
+                <?php while ($answer = $answers->fetch_assoc()) { ?>
 
-                    <?php if (!empty($answer['image'])) { ?>
+                    <button
+                        class="image-answer answer-btn"
+                        data-correct="<?= $answer['is_correct'] ?>"
+                        type="button"
+                    >
 
                         <img src="<?= $answer['image'] ?>" alt="answer image">
 
-                    <?php } else { ?>
+                    </button>
+
+                <?php } ?>
+
+            </div>
+
+        <?php } else { ?>
+
+            <div class="answers">
+
+                <?php while ($answer = $answers->fetch_assoc()) { ?>
+
+                    <button
+                        class="answer-btn"
+                        data-correct="<?= $answer['is_correct'] ?>"
+                        type="button"
+                    >
 
                         <?= $answer['answer_text'] ?>
 
-                    <?php } ?>
+                    </button>
 
-                </button>
+                <?php } ?>
 
-            <?php } ?>
+            </div>
 
-        </div>
+        <?php } ?>
 
         <!-- NEXT -->
 
