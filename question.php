@@ -10,6 +10,20 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = (int)$_SESSION['user_id'];
 
+$is_admin = false;
+
+$user_role = $conn->query("
+    SELECT role
+    FROM users
+    WHERE id = $user_id
+    LIMIT 1
+");
+
+if ($user_role && $user_role->num_rows > 0) {
+    $role_data = $user_role->fetch_assoc();
+    $is_admin = ($role_data['role'] === 'admin');
+}
+
 /*
 LEVEL
 */
@@ -181,6 +195,12 @@ $answers = $conn->query("
         <h1 class="question-title">
             <?= $current_question['question_text'] ?>
         </h1>
+
+        <?php if ($is_admin): ?>
+            <a href="edit_question.php?id=<?= $current_question['id'] ?>" class="admin-edit-question-btn">
+                Редактировать вопрос
+            </a>
+        <?php endif; ?>
 
         <!-- IMAGE -->
 

@@ -25,6 +25,20 @@ if ($page < 1) {
 $levels_per_page = 5;
 $offset = ($page - 1) * $levels_per_page;
 
+$is_admin = false;
+
+$user_role = $conn->query("
+    SELECT role
+    FROM users
+    WHERE id = $user_id
+    LIMIT 1
+");
+
+if ($user_role && $user_role->num_rows > 0) {
+    $role_data = $user_role->fetch_assoc();
+    $is_admin = ($role_data['role'] === 'admin');
+}
+
 $count_result = $conn->query("
     SELECT COUNT(*) AS total
     FROM levels
@@ -108,19 +122,27 @@ $result = $conn->query("
 
 <div class="level-item">
 
-<?php if ($locked): ?>
+    <?php if ($locked): ?>
 
-    <div class="level-circle locked">🔒</div>
+        <div class="level-circle locked">🔒</div>
 
-<?php else: ?>
+    <?php else: ?>
 
-    <a href="question.php?level=<?= $level_id ?>&category=<?= $category_id ?>">
-        <div class="level-circle <?= $completed ? 'completed' : '' ?>">
-            <?= $level['level_order'] ?>
+        <a href="question.php?level=<?= $level_id ?>&category=<?= $category_id ?>">
+            <div class="level-circle <?= $completed ? 'completed' : '' ?>">
+                <?= $level['level_order'] ?>
+            </div>
+        </a>
+
+    <?php endif; ?>
+
+    <?php if ($is_admin): ?>
+        <div class="admin-level-actions">
+            <a href="edit_levels.php?id=<?= $level_id ?>" class="admin-small-btn edit">
+                Редактировать
+            </a>
         </div>
-    </a>
-
-<?php endif; ?>
+    <?php endif; ?>
 
 </div>
 
