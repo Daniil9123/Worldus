@@ -15,6 +15,7 @@ body {
         url("../images/bc.jpg") center/cover fixed no-repeat;
 }
 
+
 /* ===== NAVBAR ===== */
 
 .navbar {
@@ -1073,6 +1074,26 @@ footer {
 .image-answer.correct img,
 .image-answer.wrong img {
     opacity: 0.75;
+}
+
+.register-error {
+    width: 80%;
+    max-width: 400px;
+
+    margin: 15px auto 0;
+
+    padding: 12px;
+
+    border: 2px solid #ff4b4b;
+    border-radius: 10px;
+
+    background: rgba(120,0,0,0.35);
+
+    color: #ffb3b3;
+
+    font-size: 15px;
+    line-height: 1.5;
+    text-align: left;
 }
 
 @media(max-width: 600px) {
