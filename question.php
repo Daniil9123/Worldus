@@ -39,6 +39,28 @@ $level_id = isset($_GET['level'])
 $category_id = isset($_GET['category'])
     ? (int)$_GET['category']
     : 1;
+    
+if (isset($_GET['failed'])) {
+    ?>
+
+    <div class="question-page">
+        <div class="finish-box">
+            <h1>Ответ неправильный</h1>
+
+            <p>Уровень не засчитан. Попробуйте пройти его ещё раз.</p>
+
+            <a href="levels.php?category=<?= $category_id ?>">
+                <button class="next-btn">
+                    Назад к уровням
+                </button>
+            </a>
+        </div>
+    </div>
+
+    <?php
+    include "includes/footer.php";
+    exit();
+}
 
 /*
 ПРОВЕРКА:
@@ -288,7 +310,7 @@ $answers = $conn->query("
 
         <!-- NEXT -->
 
-        <a href="question.php?level=<?= $level_id ?>&category=<?= $category_id ?>&q=<?= $q + 1 ?>">
+        <a id="nextLink" href="question.php?level=<?= $level_id ?>&category=<?= $category_id ?>&q=<?= $q + 1 ?>">
 
             <button
                 class="next-btn"
@@ -307,6 +329,7 @@ $answers = $conn->query("
 <script>
 const buttons = document.querySelectorAll(".answer-btn");
 const nextButton = document.getElementById("nextButton");
+const nextLink = document.getElementById("nextLink");
 
 buttons.forEach(button => {
     button.addEventListener("click", () => {
@@ -317,6 +340,7 @@ buttons.forEach(button => {
 
         if (button.dataset.correct == "1") {
             button.classList.add("correct");
+            nextLink.href = "question.php?level=<?= $level_id ?>&category=<?= $category_id ?>&q=<?= $q + 1 ?>";
         } else {
             button.classList.add("wrong");
 
@@ -325,6 +349,9 @@ buttons.forEach(button => {
                     btn.classList.add("correct");
                 }
             });
+
+            nextButton.textContent = "Вернуться к уровням";
+            nextLink.href = "question.php?level=<?= $level_id ?>&category=<?= $category_id ?>&failed=1";
         }
 
         nextButton.style.display = "inline-block";
@@ -343,9 +370,13 @@ if (checkInputBtn) {
         if (userAnswer === correctAnswer) {
             inputResult.textContent = "Правильно!";
             inputResult.className = "input-result correct-text";
+            nextLink.href = "question.php?level=<?= $level_id ?>&category=<?= $category_id ?>&q=<?= $q + 1 ?>";
         } else {
             inputResult.textContent = "Неправильно! Правильный ответ: " + correctAnswer;
             inputResult.className = "input-result wrong-text";
+
+            nextButton.textContent = "Вернуться к уровням";
+            nextLink.href = "question.php?level=<?= $level_id ?>&category=<?= $category_id ?>&failed=1";
         }
 
         textAnswer.disabled = true;
