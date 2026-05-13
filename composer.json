@@ -6,6 +6,11 @@
       "Worldus\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Worldus\\Tests\\": "tests/"
+    }
+  },
   "require-dev": {
     "phpunit/phpunit": "^10.0"
   },
