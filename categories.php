@@ -1,81 +1,34 @@
 <?php
+
+require_once __DIR__ . '/vendor/autoload.php';
 include "config/db.php";
 include "includes/header.php";
 
+use Worldus\AuthService;
+use Worldus\CategoryService;
+use Worldus\MysqliDatabase;
+
+$db = new MysqliDatabase($conn);
+$categoryService = new CategoryService($db);
+
 $is_admin = false;
+$user_id = null;
 
 if (isset($_SESSION['user_id'])) {
     $user_id = (int)$_SESSION['user_id'];
-
-    $user_result = $conn->query("
-        SELECT role 
-        FROM users 
-        WHERE id = $user_id 
-        LIMIT 1
-    ");
-
-    if ($user_result && $user_result->num_rows > 0) {
-        $user = $user_result->fetch_assoc();
-        $is_admin = ($user['role'] === 'admin');
-    }
+    $is_admin = AuthService::getUserRole($db, $user_id) === 'admin';
 }
-
-/*
-DELETE CATEGORY
-*/
 
 if ($is_admin && isset($_POST['delete_category'])) {
     $id = (int)$_POST['id'];
-
-    // Удаляем ответы вопросов этой категории
-    $conn->query("
-        DELETE answers
-        FROM answers
-        INNER JOIN questions ON answers.question_id = questions.id
-        INNER JOIN levels ON questions.level_id = levels.id
-        WHERE levels.category_id = $id
-    ");
-
-    // Удаляем вопросы этой категории
-    $conn->query("
-        DELETE questions
-        FROM questions
-        INNER JOIN levels ON questions.level_id = levels.id
-        WHERE levels.category_id = $id
-    ");
-
-    // Удаляем прогресс по уровням этой категории
-    $conn->query("
-        DELETE progress
-        FROM progress
-        INNER JOIN levels ON progress.level_id = levels.id
-        WHERE levels.category_id = $id
-    ");
-
-    // Удаляем уровни категории
-    $conn->query("
-        DELETE FROM levels
-        WHERE category_id = $id
-    ");
-
-    // Удаляем категорию
-    $conn->query("
-        DELETE FROM categories
-        WHERE id = $id
-    ");
-
+    $categoryService->deleteCategoryCascade($id);
     header("Location: categories.php");
     exit();
 }
 
-/*
-ADD CATEGORY
-*/
-
 if ($is_admin && isset($_POST['add_category'])) {
     $name = trim($_POST['name']);
     $levels_count = (int)$_POST['levels_count'];
-
     $image_path = "assets/images/EstoniaHG.png";
 
     if (!empty($_FILES['image']['name'])) {
@@ -87,76 +40,15 @@ if ($is_admin && isset($_POST['add_category'])) {
         }
     }
 
-    $stmt = $conn->prepare("
-        INSERT INTO categories (name, image)
-        VALUES (?, ?)
-    ");
-
-    $stmt->bind_param("ss", $name, $image_path);
-    $stmt->execute();
-
-    $category_id = $conn->insert_id;
-
-    $previous_level_id = null;
-
-    for ($i = 1; $i <= $levels_count; $i++) {
-        $title = "Уровень " . $i;
-
-        if ($previous_level_id === null) {
-            $stmt = $conn->prepare("
-                INSERT INTO levels (category_id, title, level_order, required_level)
-                VALUES (?, ?, ?, NULL)
-            ");
-
-            $stmt->bind_param("isi", $category_id, $title, $i);
-        } else {
-            $stmt = $conn->prepare("
-                INSERT INTO levels (category_id, title, level_order, required_level)
-                VALUES (?, ?, ?, ?)
-            ");
-
-            $stmt->bind_param("isii", $category_id, $title, $i, $previous_level_id);
-        }
-
-        $stmt->execute();
-        $previous_level_id = $conn->insert_id;
-    }
-
+    $category_id = $categoryService->addCategory($name, $image_path, $levels_count);
     header("Location: levels.php?category=" . $category_id);
     exit();
 }
 
-/*
-PAGINATION
-*/
-
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-
-if ($page < 1) {
-    $page = 1;
-}
-
-$categories_per_page = 8;
-$offset = ($page - 1) * $categories_per_page;
-
-$count_result = $conn->query("
-    SELECT COUNT(*) AS total
-    FROM categories
-");
-
-$total_categories = (int)$count_result->fetch_assoc()['total'];
-$total_pages = ceil($total_categories / $categories_per_page);
-
-$result = $conn->query("
-    SELECT 
-        categories.*,
-        COUNT(levels.id) AS levels_count
-    FROM categories
-    LEFT JOIN levels ON levels.category_id = categories.id
-    GROUP BY categories.id
-    ORDER BY categories.id ASC
-    LIMIT $categories_per_page OFFSET $offset
-");
+$pageData = $categoryService->getCategoriesPage($page);
+$categories = $pageData['categories'];
+$total_pages = $pageData['total_pages'];
 ?>
 
 <div class="container">
@@ -169,7 +61,7 @@ $result = $conn->query("
 
     <div class="grid">
 
-        <?php while ($row = $result->fetch_assoc()): ?>
+        <?php foreach ($categories as $row): ?>
 
             <?php
             $image = !empty($row['image'])
@@ -207,7 +99,7 @@ $result = $conn->query("
 
             </div>
 
-        <?php endwhile; ?>
+        <?php endforeach; ?>
 
     </div>
 

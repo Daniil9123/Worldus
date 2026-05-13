@@ -1,7 +1,12 @@
 <?php
 
+require_once __DIR__ . '/vendor/autoload.php';
 include "config/db.php";
 include "includes/header.php";
+
+use Worldus\AuthService;
+use Worldus\MysqliDatabase;
+use Worldus\QuestionService;
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -10,36 +15,14 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = (int)$_SESSION['user_id'];
 
-$is_admin = false;
+$db = new MysqliDatabase($conn);
+$questionService = new QuestionService($db);
 
-$user_role = $conn->query("
-    SELECT role
-    FROM users
-    WHERE id = $user_id
-    LIMIT 1
-");
+$is_admin = AuthService::getUserRole($db, $user_id) === 'admin';
 
-if ($user_role && $user_role->num_rows > 0) {
-    $role_data = $user_role->fetch_assoc();
-    $is_admin = ($role_data['role'] === 'admin');
-}
+$level_id = isset($_GET['level']) ? (int)$_GET['level'] : 0;
+$category_id = isset($_GET['category']) ? (int)$_GET['category'] : 1;
 
-/*
-LEVEL
-*/
-
-/*
-LEVEL AND CATEGORY
-*/
-
-$level_id = isset($_GET['level'])
-    ? (int)$_GET['level']
-    : 0;
-
-$category_id = isset($_GET['category'])
-    ? (int)$_GET['category']
-    : 1;
-    
 if (isset($_GET['failed'])) {
     ?>
 
@@ -62,21 +45,7 @@ if (isset($_GET['failed'])) {
     exit();
 }
 
-/*
-ПРОВЕРКА:
-уровень принадлежит категории
-*/
-
-$level_check = $conn->query("
-    SELECT *
-    FROM levels
-    WHERE id = $level_id
-    AND category_id = $category_id
-    LIMIT 1
-");
-
-if ($level_check->num_rows == 0) {
-
+if (!$questionService->validateLevelCategory($level_id, $category_id)) {
     echo "
     <div class='question-page'>
 
@@ -99,40 +68,9 @@ if ($level_check->num_rows == 0) {
     exit();
 }
 
-/*
-QUESTION NUMBER
-*/
-
-$q = isset($_GET['q'])
-    ? (int)$_GET['q']
-    : 0;
-
-/*
-ВСЕ ВОПРОСЫ УРОВНЯ
-*/
-
-$questions = $conn->query("
-    SELECT *
-    FROM questions
-    WHERE level_id = $level_id
-    ORDER BY id ASC
-");
-
-$questions_array = [];
-
-while ($row = $questions->fetch_assoc()) {
-    $questions_array[] = $row;
-}
-
-/*
-КОЛИЧЕСТВО
-*/
-
+$q = isset($_GET['q']) ? (int)$_GET['q'] : 0;
+$questions_array = $questionService->getQuestionsByLevel($level_id);
 $total_questions = count($questions_array);
-
-/*
-ЕСЛИ ВОПРОСОВ НЕТ
-*/
 
 if ($total_questions == 0) {
     echo "<div class='question-page'><div class='finish-box'><h1>Вопросов нет</h1></div></div>";
@@ -140,20 +78,9 @@ if ($total_questions == 0) {
     exit();
 }
 
-/*
-ЕСЛИ УРОВЕНЬ ЗАКОНЧЕН
-*/
-
 if ($q >= $total_questions) {
-
-    $conn->query("
-        INSERT INTO progress (user_id, level_id, completed, score)
-        VALUES ($user_id, $level_id, 1, 0)
-        ON DUPLICATE KEY UPDATE
-        completed = 1
-    ");
-
-?>
+    $questionService->completeLevel($user_id, $level_id);
+    ?>
 
 <div class="question-page">
 
@@ -172,27 +99,12 @@ if ($q >= $total_questions) {
 </div>
 
 <?php
-
     include "includes/footer.php";
     exit();
-
 }
 
-/*
-ТЕКУЩИЙ ВОПРОС
-*/
-
 $current_question = $questions_array[$q];
-
-/*
-ОТВЕТЫ
-*/
-
-$answers = $conn->query("
-    SELECT *
-    FROM answers
-    WHERE question_id = {$current_question['id']}
-");
+$answers = $questionService->getAnswersByQuestion($current_question['id']);
 
 ?>
 
@@ -215,7 +127,7 @@ $answers = $conn->query("
         <!-- QUESTION -->
 
         <h1 class="question-title">
-            <?= $current_question['question_text'] ?>
+            <?= htmlspecialchars($current_question['question_text']) ?>
         </h1>
 
         <?php if ($is_admin): ?>
@@ -243,7 +155,12 @@ $answers = $conn->query("
             <div class="input-answer-box">
 
                 <?php
-                $correct_answer = $answers->fetch_assoc();
+                $correct_answer = $answers[0] ?? null;
+                if (!$correct_answer) {
+                    echo "<p>Ошибка: правильный ответ не найден.</p>";
+                    include "includes/footer.php";
+                    exit();
+                }
                 ?>
 
                 <input
@@ -270,7 +187,7 @@ $answers = $conn->query("
 
             <div class="image-answers">
 
-                <?php while ($answer = $answers->fetch_assoc()) { ?>
+                <?php foreach ($answers as $answer) { ?>
 
                     <button
                         class="image-answer answer-btn"
@@ -290,7 +207,7 @@ $answers = $conn->query("
 
             <div class="answers">
 
-                <?php while ($answer = $answers->fetch_assoc()) { ?>
+                <?php foreach ($answers as $answer) { ?>
 
                     <button
                         class="answer-btn"
@@ -298,7 +215,7 @@ $answers = $conn->query("
                         type="button"
                     >
 
-                        <?= $answer['answer_text'] ?>
+                        <?= htmlspecialchars($answer['answer_text']) ?>
 
                     </button>
 

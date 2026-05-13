@@ -1,7 +1,12 @@
 <?php
 
+require_once __DIR__ . '/vendor/autoload.php';
 include "config/db.php";
 include "includes/header.php";
+
+use Worldus\AuthService;
+use Worldus\LevelService;
+use Worldus\MysqliDatabase;
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -9,68 +14,19 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = (int)$_SESSION['user_id'];
+$category_id = isset($_GET['category']) ? (int)$_GET['category'] : 1;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 
-$category_id = isset($_GET['category'])
-    ? (int)$_GET['category']
-    : 1;
+$db = new MysqliDatabase($conn);
+$levelService = new LevelService($db);
+$is_admin = AuthService::getUserRole($db, $user_id) === 'admin';
 
-$page = isset($_GET['page'])
-    ? (int)$_GET['page']
-    : 1;
-
-if ($page < 1) {
-    $page = 1;
-}
-
-$levels_per_page = 5;
-$offset = ($page - 1) * $levels_per_page;
-
-$is_admin = false;
-
-$user_role = $conn->query("
-    SELECT role
-    FROM users
-    WHERE id = $user_id
-    LIMIT 1
-");
-
-if ($user_role && $user_role->num_rows > 0) {
-    $role_data = $user_role->fetch_assoc();
-    $is_admin = ($role_data['role'] === 'admin');
-}
-
-$count_result = $conn->query("
-    SELECT COUNT(*) AS total
-    FROM levels
-    WHERE category_id = $category_id
-");
-
-$total_levels = (int)$count_result->fetch_assoc()['total'];
-$total_pages = ceil($total_levels / $levels_per_page);
-
-$completed_result = $conn->query("
-    SELECT COUNT(*) AS completed_count
-    FROM progress
-    INNER JOIN levels ON progress.level_id = levels.id
-    WHERE progress.user_id = $user_id
-    AND levels.category_id = $category_id
-    AND progress.completed = 1
-");
-
-$completed_levels = (int)$completed_result->fetch_assoc()['completed_count'];
-
-$progress_percent = $total_levels > 0
-    ? ($completed_levels / $total_levels) * 100
-    : 0;
-
-$result = $conn->query("
-    SELECT *
-    FROM levels
-    WHERE category_id = $category_id
-    ORDER BY level_order ASC
-    LIMIT $levels_per_page OFFSET $offset
-");
-
+$pageData = $levelService->getLevelsPage($category_id, $page, $user_id);
+$levels = $pageData['levels'];
+$total_levels = $pageData['total'];
+$total_pages = $pageData['total_pages'];
+$completed_levels = $pageData['completed'];
+$progress_percent = $pageData['progress_percent'];
 ?>
 
 <div class="levels-page">
@@ -86,39 +42,13 @@ $result = $conn->query("
 
 <div class="levels-map">
 
-<?php while ($level = $result->fetch_assoc()) {
+<?php foreach ($levels as $level): ?>
 
+    <?php
     $level_id = (int)$level['id'];
-    $locked = false;
-
-    if (!empty($level['required_level'])) {
-        $required_level = (int)$level['required_level'];
-
-        $check = $conn->query("
-            SELECT id
-            FROM progress
-            WHERE user_id = $user_id
-            AND level_id = $required_level
-            AND completed = 1
-            LIMIT 1
-        ");
-
-        if ($check->num_rows == 0) {
-            $locked = true;
-        }
-    }
-
-    $done = $conn->query("
-        SELECT id
-        FROM progress
-        WHERE user_id = $user_id
-        AND level_id = $level_id
-        AND completed = 1
-        LIMIT 1
-    ");
-
-    $completed = $done->num_rows > 0;
-?>
+    $locked = !empty($level['locked']) && $level['locked'];
+    $completed = !empty($level['completed']) && $level['completed'];
+    ?>
 
 <div class="level-item">
 
@@ -146,7 +76,7 @@ $result = $conn->query("
 
 </div>
 
-<?php } ?>
+<?php endforeach; ?>
 
 </div>
 

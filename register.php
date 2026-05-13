@@ -1,96 +1,33 @@
 <?php
+
+require_once __DIR__ . '/vendor/autoload.php';
 include "config/db.php";
 include "includes/header.php";
 
+use Worldus\AuthService;
+use Worldus\MysqliDatabase;
+
+$db = new MysqliDatabase($conn);
 $error = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-
     $email = trim($_POST['email']);
     $plain_password = "";
 
     foreach ($_POST as $key => $value) {
-
         if (strpos($key, "password_real_") === 0) {
             $plain_password = $value;
             break;
         }
     }
 
-    /*
-    МИНИМУМ 8 СИМВОЛОВ
-    */
-
-    if (strlen($plain_password) < 8) {
-
-        $error = "
-        Пароль должен содержать минимум 8 символов.
-        ";
+    $result = AuthService::register($db, $email, $plain_password);
+    if ($result === true) {
+        header("Location: login.php");
+        exit();
     }
 
-    /*
-    ПРОВЕРКА:
-    маленькие буквы,
-    большие буквы,
-    цифры,
-    специальные символы
-    */
-
-    elseif (
-        !preg_match('/[a-z]/', $plain_password) ||
-        !preg_match('/[A-Z]/', $plain_password) ||
-        !preg_match('/[0-9]/', $plain_password) ||
-        !preg_match('/[\W_]/', $plain_password)
-    ) {
-
-        $error = "
-        Пароль должен содержать:
-        <br><br>
-
-        • маленькие буквы
-        <br>
-
-        • большие буквы
-        <br>
-
-        • цифры
-        <br>
-
-        • специальные символы
-        <br>
-
-        Пример:
-        <br>
-
-        Worldus123!
-        ";
-    }
-
-    /*
-    ЕСЛИ ОШИБОК НЕТ
-    */
-
-    if (empty($error)) {
-
-        $password = password_hash($plain_password, PASSWORD_DEFAULT);
-
-        $stmt = $conn->prepare("
-            INSERT INTO users (email, password)
-            VALUES (?, ?)
-        ");
-
-        $stmt->bind_param("ss", $email, $password);
-
-        if ($stmt->execute()) {
-
-            header("Location: login.php");
-            exit();
-
-        } else {
-
-            $error = "Пользователь уже существует.";
-        }
-    }
+    $error = $result;
 }
 ?>
 

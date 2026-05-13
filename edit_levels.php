@@ -1,6 +1,12 @@
 <?php
+
+require_once __DIR__ . '/vendor/autoload.php';
 include "config/db.php";
 include "includes/header.php";
+
+use Worldus\LevelService;
+use Worldus\MysqliDatabase;
+use Worldus\QuestionService;
 
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -26,54 +32,23 @@ if (!$user || $user['role'] !== 'admin') {
 
 $level_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-$level_result = $conn->query("
-    SELECT *
-    FROM levels
-    WHERE id = $level_id
-    LIMIT 1
-");
+$db = new MysqliDatabase($conn);
+$levelService = new LevelService($db);
+$questionService = new QuestionService($db);
 
-if ($level_result->num_rows == 0) {
+$level = $levelService->getLevelById($level_id);
+if (!$level) {
     echo "<h1 class='categories-title'>Уровень не найден</h1>";
     include "includes/footer.php";
     exit();
 }
 
-$level = $level_result->fetch_assoc();
 $category_id = (int)$level['category_id'];
 
 if (isset($_POST['save_level'])) {
     $title = trim($_POST['title']);
     $level_order = (int)$_POST['level_order'];
-
-    $stmt = $conn->prepare("
-        UPDATE levels
-        SET title = ?, level_order = ?
-        WHERE id = ?
-    ");
-
-    $stmt->bind_param("sii", $title, $level_order, $level_id);
-    $stmt->execute();
-
-    $old_questions = $conn->query("
-        SELECT id
-        FROM questions
-        WHERE level_id = $level_id
-    ");
-
-    while ($old_q = $old_questions->fetch_assoc()) {
-        $old_q_id = (int)$old_q['id'];
-
-        $conn->query("
-            DELETE FROM answers
-            WHERE question_id = $old_q_id
-        ");
-    }
-
-    $conn->query("
-        DELETE FROM questions
-        WHERE level_id = $level_id
-    ");
+    $questions = [];
 
     foreach ($_POST['question_text'] as $index => $question_text) {
         $question_text = trim($question_text);
@@ -82,113 +57,62 @@ if (isset($_POST['save_level'])) {
             continue;
         }
 
-        $type = $_POST['question_type'][$index];
+        $type = $_POST['question_type'][$index] ?? 'choice';
         $answer_count = isset($_POST['answer_count'][$index])
             ? (int)$_POST['answer_count'][$index]
             : 4;
 
-        if ($answer_count < 1) {
-            $answer_count = 1;
-        }
+        $answer_count = max(1, min(4, $answer_count));
+        $correct_answer = isset($_POST['correct_answer'][$index]) ? (int)$_POST['correct_answer'][$index] : 0;
 
-        if ($answer_count > 4) {
-            $answer_count = 4;
-        }
-
-        $stmt = $conn->prepare("
-            INSERT INTO questions (level_id, question_text, type)
-            VALUES (?, ?, ?)
-        ");
-
-        $stmt->bind_param("iss", $level_id, $question_text, $type);
-        $stmt->execute();
-
-        $question_id = $conn->insert_id;
+        $question = [
+            'question_text' => $question_text,
+            'type' => $type,
+            'answer_count' => $answer_count,
+            'correct_answer' => $correct_answer,
+        ];
 
         if ($type === 'input') {
-            $input_answer = trim($_POST['input_answer'][$index] ?? '');
-
-            $stmt = $conn->prepare("
-                INSERT INTO answers (question_id, answer_text, is_correct)
-                VALUES (?, ?, 1)
-            ");
-
-            $stmt->bind_param("is", $question_id, $input_answer);
-            $stmt->execute();
+            $question['input_answer'] = trim($_POST['input_answer'][$index] ?? '');
         }
 
-        if ($type === 'choice') {
+        if ($type === 'choice' || $type === 'image') {
+            $question['answers'] = [];
+
             for ($i = 0; $i < $answer_count; $i++) {
-                $answer_text = trim($_POST['answer_text'][$index][$i] ?? '');
-                $is_correct = isset($_POST['correct_answer'][$index]) && (int)$_POST['correct_answer'][$index] === $i ? 1 : 0;
+                $answerText = trim($_POST['answer_text'][$index][$i] ?? '');
+                $imagePath = trim($_POST['old_answer_image'][$index][$i] ?? '');
 
-                $stmt = $conn->prepare("
-                    INSERT INTO answers (question_id, answer_text, is_correct)
-                    VALUES (?, ?, ?)
-                ");
-
-                $stmt->bind_param("isi", $question_id, $answer_text, $is_correct);
-                $stmt->execute();
-            }
-        }
-
-        if ($type === 'image') {
-            for ($i = 0; $i < $answer_count; $i++) {
-                $is_correct = isset($_POST['correct_answer'][$index]) && (int)$_POST['correct_answer'][$index] === $i ? 1 : 0;
-
-                $image_path = $_POST['old_answer_image'][$index][$i] ?? null;
-
-                if (!empty($_FILES['answer_image']['name'][$index][$i])) {
+                if ($type === 'image' && !empty($_FILES['answer_image']['name'][$index][$i])) {
                     $file_name = time() . "_" . basename($_FILES['answer_image']['name'][$index][$i]);
                     $target = "assets/images/" . $file_name;
 
                     if (move_uploaded_file($_FILES['answer_image']['tmp_name'][$index][$i], $target)) {
-                        $image_path = $target;
+                        $imagePath = $target;
                     }
                 }
 
-                $stmt = $conn->prepare("
-                    INSERT INTO answers (question_id, answer_text, image, is_correct)
-                    VALUES (?, NULL, ?, ?)
-                ");
-
-                $stmt->bind_param("isi", $question_id, $image_path, $is_correct);
-                $stmt->execute();
+                $question['answers'][] = [
+                    'answer_text' => $answerText,
+                    'image' => $imagePath,
+                ];
             }
         }
+
+        $questions[] = $question;
     }
+
+    $levelService->saveLevel($level_id, $title, $level_order, $questions);
 
     header("Location: levels.php?category=" . $category_id);
     exit();
 }
 
-$questions_result = $conn->query("
-    SELECT *
-    FROM questions
-    WHERE level_id = $level_id
-    ORDER BY id ASC
-");
-
-$questions = [];
-
-while ($q = $questions_result->fetch_assoc()) {
-    $qid = (int)$q['id'];
-
-    $answers_result = $conn->query("
-        SELECT *
-        FROM answers
-        WHERE question_id = $qid
-        ORDER BY id ASC
-    ");
-
-    $q['answers'] = [];
-
-    while ($a = $answers_result->fetch_assoc()) {
-        $q['answers'][] = $a;
-    }
-
-    $questions[] = $q;
+$questions = $questionService->getQuestionsByLevel($level_id);
+foreach ($questions as &$question) {
+    $question['answers'] = $questionService->getAnswersByQuestion((int)$question['id']);
 }
+unset($question);
 
 if (count($questions) == 0) {
     $questions[] = [

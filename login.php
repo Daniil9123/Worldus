@@ -1,22 +1,27 @@
 <?php
 
+require_once __DIR__ . '/vendor/autoload.php';
 include "config/db.php";
 include "includes/header.php";
+
+use Worldus\AuthService;
+use Worldus\MysqliDatabase;
+
+$db = new MysqliDatabase($conn);
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = $_POST['email'];
     $password = $_POST['password'];
 
-    $result = $conn->query("SELECT * FROM users WHERE email='$email'");
-    $user = $result->fetch_assoc();
+    $user = AuthService::authenticate($db, $email, $password);
 
-    if ($user && password_verify($password, $user['password'])) {
+    if ($user) {
         $_SESSION['user_id'] = $user['id'];
         header("Location: index.php");
         exit();
-    } else {
-        echo "<p>Неверный логин или пароль</p>";
     }
+
+    echo "<p>Неверный логин или пароль</p>";
 }
 ?>
 
