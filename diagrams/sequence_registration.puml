@@ -1,0 +1,49 @@
+@startuml User Registration Sequence Diagram
+title User Registration Flow
+
+actor User
+participant "register.php" as Web
+participant "AuthService" as Auth
+participant "MysqliDatabase" as DB
+database "MySQL" as SQL
+
+User ->> Web: Access registration page
+Web -->> User: Display registration form
+
+User ->> Web: Submit email, password, password_confirm
+Web ->> Web: Client-side validation (optional)
+
+Web ->> Auth: validatePassword(password)
+Auth ->> Auth: Check length >= 8
+Auth ->> Auth: Check for lowercase, uppercase, digit, special char
+Auth -->> Web: Error message or null
+
+alt Password invalid
+    Web -->> User: Display validation errors
+else Password valid
+    Web ->> Auth: register(db, email, password)
+    
+    Auth ->> DB: prepare(SELECT * FROM users WHERE email = ?)
+    DB ->> SQL: Check if email exists
+    SQL -->> DB: Result set
+    DB -->> Auth: Result
+    
+    alt Email exists
+        Auth -->> Web: false
+        Web -->> User: "Email already registered"
+    else Email does not exist
+        Auth ->> Auth: password_hash(password)
+        Auth -->> Auth: Hashed password
+        
+        Auth ->> DB: prepare(INSERT INTO users)
+        DB ->> SQL: Insert new user
+        SQL -->> DB: Insert ID
+        DB -->> Auth: Success
+        
+        Auth -->> Web: true
+        Web ->> User: Redirect to login.php
+        User -->> User: "Registration successful"
+    end
+end
+
+@enduml

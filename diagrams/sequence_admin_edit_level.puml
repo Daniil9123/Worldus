@@ -1,0 +1,67 @@
+@startuml Admin Edit Level Sequence Diagram
+title Admin Level Editing Flow
+
+actor Admin
+participant "edit_levels.php" as Web
+participant "LevelService" as LService
+participant "MysqliDatabase" as DB
+database "MySQL" as SQL
+
+Admin ->> Web: Request edit_levels.php
+Web ->> Web: Check session & admin role
+
+Web ->> Web: Display edit form
+
+Admin ->> Web: Submit level data with questions/answers
+Web ->> Web: Validate form data
+
+Web ->> LService: saveLevel(levelId, title, levelOrder, questions)
+
+LService ->> DB: prepare(UPDATE levels SET ...)
+DB ->> SQL: Update level title and order
+SQL -->> DB: Success
+DB -->> LService: Success
+
+LService ->> DB: query(SELECT id FROM questions WHERE level_id = X)
+DB ->> SQL: Get old questions
+SQL -->> DB: Old questions
+DB -->> LService: Questions array
+
+loop For each old question
+    LService ->> DB: query(DELETE FROM answers WHERE question_id = X)
+    DB ->> SQL: Delete answers
+    SQL -->> DB: Success
+end
+
+LService ->> DB: query(DELETE FROM questions WHERE level_id = X)
+DB ->> SQL: Delete all questions for level
+SQL -->> DB: Success
+
+loop For each new question in array
+    alt Question type = input
+        LService ->> DB: prepare(INSERT INTO questions)
+        DB ->> SQL: Insert question
+        SQL -->> DB: New question ID
+        DB -->> LService: Question ID
+        
+        LService ->> DB: prepare(INSERT INTO answers)
+        DB ->> SQL: Insert correct answer
+        SQL -->> DB: Success
+        
+    else Question type = choice or image
+        LService ->> DB: prepare(INSERT INTO questions)
+        DB ->> SQL: Insert question
+        SQL -->> DB: New question ID
+        
+        loop For each answer option
+            LService ->> DB: prepare(INSERT INTO answers)
+            DB ->> SQL: Insert answer with is_correct flag
+            SQL -->> DB: Success
+        end
+    end
+end
+
+LService -->> Web: True (success)
+Web -->> Admin: Redirect or success message
+
+@enduml

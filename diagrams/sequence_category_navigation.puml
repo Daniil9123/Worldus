@@ -1,0 +1,46 @@
+@startuml Category and Level Navigation Sequence Diagram
+title Category and Level Navigation Flow
+
+actor User
+participant "categories.php\nor levels.php" as Web
+participant "CategoryService\nor LevelService" as Service
+participant "MysqliDatabase" as DB
+database "MySQL" as SQL
+
+User ->> Web: Request categories/levels page
+Web ->> Web: Check session
+
+alt View Categories
+    Web ->> Service: getCategoriesPage(page, perPage=8)
+    Service ->> DB: query(SELECT COUNT(*) FROM categories)
+    DB ->> SQL: Count total categories
+    SQL -->> DB: Total count
+    DB -->> Service: Count
+    Service ->> Service: Calculate totalPages
+    
+    Service ->> DB: query(SELECT * FROM categories LIMIT offset, perPage)
+    DB ->> SQL: Get paginated categories
+    SQL -->> DB: Categories array
+    DB -->> Service: Categories array
+    Service -->> Web: Array with categories and pagination
+    
+    Web -->> User: Display categories with pagination
+    User ->> Web: Click on category
+    
+else View Levels
+    User ->> Web: GET levels.php?category=X
+    Web ->> Service: getLevelsByCategory(category_id)
+    Service ->> DB: query(SELECT * FROM levels WHERE category_id = X)
+    DB ->> SQL: Get levels for category
+    SQL -->> DB: Levels array
+    DB -->> Service: Levels array
+    Service -->> Web: Levels with questions
+    
+    Web -->> User: Display levels
+    User ->> Web: Click on level
+end
+
+User ->> Web: GET question.php?level=Y&category=X
+Web -->> User: Display first question
+
+@enduml

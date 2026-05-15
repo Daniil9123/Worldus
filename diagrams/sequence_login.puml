@@ -1,0 +1,38 @@
+@startuml Login Sequence Diagram
+title User Login Flow
+
+actor User
+participant "login.php" as Web
+participant "AuthService" as Auth
+participant "MysqliDatabase" as DB
+database "MySQL" as SQL
+
+User ->> Web: Enter email & password
+Web ->> Web: $_POST received
+Web ->> Auth: authenticate(db, email, password)
+
+Auth ->> DB: prepare(SELECT from users)
+DB ->> SQL: Prepare statement
+SQL -->> DB: Statement object
+DB -->> Auth: Statement
+
+Auth ->> DB: bind_param & execute
+DB ->> SQL: Execute query
+SQL -->> DB: Result set
+DB -->> Auth: Result
+
+Auth ->> Auth: fetch_assoc()
+Auth ->> Auth: password_verify()
+
+alt User found & password correct
+    Auth -->> Web: User array
+    Web ->> Web: $_SESSION['user_id'] = user_id
+    Web ->> User: Redirect to index.php
+    User ->> Web: GET index.php
+    Web -->> User: Display dashboard
+else User not found or password wrong
+    Auth -->> Web: null
+    Web -->> User: Display error message
+end
+
+@enduml

@@ -1,0 +1,57 @@
+@startuml Answer Question Sequence Diagram
+title Question Answering Flow
+
+actor User
+participant "question.php" as Web
+participant "QuestionService" as QService
+participant "AuthService" as Auth
+participant "MysqliDatabase" as DB
+database "MySQL" as SQL
+
+User ->> Web: Load question page
+Web ->> Web: Check session (user_id)
+Web ->> Auth: getUserRole(db, user_id)
+Auth ->> DB: query(SELECT from users)
+DB ->> SQL: Execute query
+SQL -->> DB: User role
+DB -->> Auth: User role
+Auth -->> Web: Role (admin/user)
+
+Web ->> QService: validateLevelCategory(level_id, category_id)
+QService ->> DB: prepare(SELECT from levels)
+DB ->> SQL: Check level belongs to category
+SQL -->> DB: Result
+DB -->> QService: Validation result
+QService -->> Web: True/False
+
+alt Valid level
+    Web ->> QService: getQuestionsByLevel(level_id)
+    QService ->> DB: query(SELECT from questions)
+    DB ->> SQL: Get questions
+    SQL -->> DB: Question array
+    DB -->> QService: Questions
+    QService -->> Web: Questions array
+    
+    Web -->> User: Display questions
+    User ->> Web: Submit answer
+    
+    Web ->> QService: getCorrectAnswer(question_id)
+    QService ->> DB: query(SELECT from answers WHERE is_correct=1)
+    DB ->> SQL: Get correct answer
+    SQL -->> DB: Correct answer
+    DB -->> QService: Correct answer
+    QService -->> Web: Answer data
+    
+    Web ->> Web: Compare user answer with correct answer
+    
+    alt Answer correct
+        Web ->> Web: Mark level as complete
+        Web ->> User: Redirect to next level
+    else Answer incorrect
+        Web ->> User: Redirect with failed=1
+    end
+else Invalid level
+    Web -->> User: Display error message
+end
+
+@enduml

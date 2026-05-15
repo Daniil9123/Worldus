@@ -1,0 +1,77 @@
+@startuml Complete Game Flow Sequence Diagram
+title Complete Game Playing Flow
+
+actor User
+participant "index.php" as Index
+participant "categories.php" as Cat
+participant "levels.php" as Lev
+participant "question.php" as Q
+participant "Services" as Svc
+participant "Database" as DB
+
+User ->> Index: Access index.php
+Index ->> Svc: Fetch user data and progress
+Svc ->> DB: Query user info
+DB -->> Svc: User data
+Svc -->> Index: User profile
+Index -->> User: Show dashboard
+
+User ->> Cat: Click "Start Game"
+Cat ->> Svc: getCategoriesPage(1, 8)
+Svc ->> DB: Query categories with pagination
+DB -->> Svc: Categories list
+Svc -->> Cat: Categories array
+Cat -->> User: Display categories
+
+User ->> Lev: Select Category (level.php?category=X)
+Lev ->> Svc: getLevelsByCategory(category_id)
+Svc ->> DB: Query levels for category
+DB -->> Svc: Levels array
+Svc -->> Lev: Levels with difficulty
+Lev -->> User: Display levels/stages
+
+User ->> Q: Select Level (question.php?level=Y&category=X)
+Q ->> Svc: validateLevelCategory(level, category)
+Svc ->> DB: Verify relationship
+DB -->> Svc: Validation result
+Svc -->> Q: Valid/Invalid
+
+alt Validation passed
+    Q ->> Svc: getQuestionsByLevel(level_id)
+    Svc ->> DB: Query questions
+    DB -->> Svc: Questions array
+    Svc -->> Q: Questions list
+    
+    Q -->> User: Display question 1
+    
+    loop For each question in level
+        User ->> Q: Select answer option or input text
+        Q ->> Svc: getCorrectAnswer(question_id)
+        Svc ->> DB: Query correct answer
+        DB -->> Svc: Correct answer
+        Svc -->> Q: Answer data
+        
+        Q ->> Q: Compare answers
+        
+        alt Answer correct
+            Q ->> Q: Increment score
+            Q -->> User: "Correct! Next question"
+        else Answer incorrect
+            Q -->> User: "Incorrect! Try again or fail"
+            opt User gives up
+                Q ->> Q: Mark level as failed
+                Q ->> Q: Redirect to levels
+            end
+        end
+    end
+    
+    alt All answers correct
+        Q ->> DB: Update user progress/completion
+        Q -->> User: "Level Complete! You may proceed"
+        Q ->> Lev: Redirect to levels.php
+    end
+else Validation failed
+    Q -->> User: Display error
+end
+
+@enduml

@@ -1,0 +1,95 @@
+@startuml Worldus Class Diagram
+!define ABSTRACT abstract
+!define INTERFACE interface
+
+package "Worldus" {
+    INTERFACE DatabaseInterface {
+        +query(sql: string): mixed
+        +prepare(sql: string): mixed
+        +getInsertId(): int
+    }
+
+    class MysqliDatabase {
+        -conn: mysqli
+        +__construct(conn: mysqli)
+        +query(sql: string): mixed
+        +prepare(sql: string): mixed
+        +getInsertId(): int
+    }
+
+    class AuthService {
+        +{static}validatePassword(password: string): ?string
+        +{static}authenticate(db: DatabaseInterface, email: string, password: string): ?array
+        +{static}getUserRole(db: DatabaseInterface, userId: int): ?string
+        +{static}register(db: DatabaseInterface, email: string, password: string): bool
+    }
+
+    class CategoryService {
+        -db: DatabaseInterface
+        +__construct(db: DatabaseInterface)
+        +getCategoryById(categoryId: int): ?array
+        +getCategoriesPage(page: int, perPage: int): array
+        +getCategories(): array
+        +updateCategory(categoryId: int, title: string, description: string): bool
+        +createCategory(title: string, description: string): bool
+        +deleteCategory(categoryId: int): bool
+    }
+
+    class LevelService {
+        -db: DatabaseInterface
+        +__construct(db: DatabaseInterface)
+        +getLevelById(levelId: int): ?array
+        +getLevelsByCategory(categoryId: int): array
+        +saveLevel(levelId: int, title: string, levelOrder: int, questions: array): bool
+        +deleteLevel(levelId: int): bool
+    }
+
+    class QuestionService {
+        -db: DatabaseInterface
+        +__construct(db: DatabaseInterface)
+        +validateLevelCategory(levelId: int, categoryId: int): bool
+        +getQuestionsByLevel(levelId: int): array
+        +getAnswersByQuestion(questionId: int): array
+        +checkAnswer(questionId: int, answerId: int): bool
+        +getCorrectAnswer(questionId: int): ?array
+    }
+}
+
+DatabaseInterface <|.. MysqliDatabase
+CategoryService --> DatabaseInterface
+LevelService --> DatabaseInterface
+QuestionService --> DatabaseInterface
+AuthService --> DatabaseInterface
+
+note right of DatabaseInterface
+  Abstraction for database operations
+  Supports prepared statements
+end note
+
+note right of MysqliDatabase
+  Concrete implementation
+  using MySQLi extension
+end note
+
+note right of AuthService
+  Static methods for user
+  authentication and validation
+end note
+
+note right of CategoryService
+  Manages game categories
+  CRUD operations
+end note
+
+note right of LevelService
+  Manages levels within categories
+  Handles question/answer data
+end note
+
+note right of QuestionService
+  Manages questions and answers
+  Validates level-category relationship
+  Checks answer correctness
+end note
+
+@enduml
